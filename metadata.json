@@ -1,0 +1,7 @@
+{
+  "name": "HydroFit Gym Pro",
+  "description": "Enciclopedia interactiva de ejercicios y máquinas de gimnasio, biomecánica, tracker de series, temporizador de descanso y calculadora 1RM.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

@@ -1,0 +1,126 @@
+export type MuscleGroup = 
+  | 'pecho'
+  | 'espalda'
+  | 'cuadriceps'
+  | 'isquios'
+  | 'gluteos'
+  | 'gemelos'
+  | 'hombros'
+  | 'biceps'
+  | 'triceps'
+  | 'antebrazos'
+  | 'core'
+  | 'cardio';
+
+export type EquipmentType = 
+  | 'maquina'
+  | 'mancuerna'
+  | 'barra'
+  | 'polea'
+  | 'peso_corporal'
+  | 'cardio_maquina';
+
+export type Category = 
+  | 'ALL'
+  | 'DUMBBELL'
+  | 'MACHINE'
+  | 'CARDIO'
+  | 'todos'
+  | 'pecho'
+  | 'espalda'
+  | 'piernas'
+  | 'hombros'
+  | 'brazos'
+  | 'core'
+  | 'cardio';
+
+export type DifficultyLevel = 'Principiante' | 'Intermedio' | 'Avanzado';
+
+export type SetType = 'warmup' | 'working' | 'dropset' | 'failure';
+
+export interface CommonMistake {
+  mistake: string;
+  fix: string;
+  dangerLevel: 'Bajo' | 'Medio' | 'Alto';
+}
+
+export interface MachineSetup {
+  seatHeight?: string;
+  backrestAngle?: string;
+  pinOrCableLevel?: string;
+  handleOrGrip?: string;
+  safetyCatch?: string;
+}
+
+export interface Exercise {
+  id: string;
+  name: string;
+  category: string;
+  categoryLabel?: string;
+  muscle: string;
+  secondary: string[];
+  tempo: string;
+  equipment: string;
+  rest: number;
+  tips: string[];
+  mistakes: string[];
+  imgMale: string;
+  imgFemale: string;
+
+  // Rich extensions
+  machineName?: string;
+  primaryMuscle: MuscleGroup;
+  secondaryMuscles: MuscleGroup[];
+  difficulty: DifficultyLevel;
+  shortDesc: string;
+  machineSetup: MachineSetup;
+  executionSteps: {
+    title: string;
+    description: string;
+  }[];
+  biomechanicsTips: string[];
+  commonMistakes: CommonMistake[];
+  targetZone: string;
+  repRange: string;
+  rpeRecommendation: string;
+  tempoAdvice: string;
+  svgGraphicType: 'press' | 'pull' | 'squat' | 'extension' | 'curl' | 'cable' | 'treadmill' | 'abs';
+}
+
+export interface LoggedSet {
+  id: string;
+  setNumber: number;
+  weightKg: number;
+  reps: number;
+  rpe?: number;
+  setType: SetType;
+  completed: boolean;
+  timestamp: number;
+}
+
+export interface ExerciseHistory {
+  exerciseId: string;
+  sets: LoggedSet[];
+  date: string;
+  personalRecordKg?: number;
+}
+
+export interface ActiveWorkout {
+  id: string;
+  name: string;
+  startedAt: number;
+  exercises: {
+    exerciseId: string;
+    sets: LoggedSet[];
+  }[];
+}
+
+export interface RoutinePreset {
+  id: string;
+  title: string;
+  subtitle: string;
+  frequency: string;
+  focus: string;
+  exerciseIds: string[];
+  tag: string;
+}
