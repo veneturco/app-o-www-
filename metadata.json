@@ -1,7 +1,7 @@
 {
   "name": "HydroFit Gym Pro",
-  "description": "Enciclopedia interactiva de ejercicios y máquinas de gimnasio, biomecánica, tracker de series, temporizador de descanso y calculadora 1RM.",
-  "requestFramePermissions": [],
+  "description": "Enciclopedia de ejercicios y máquinas, tracker de series, historial con gráfico de tonelaje semanal en Recharts y recordatorio inteligente de hidratación con IA adaptado a biometría, clima y alarmas sonoras.",
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
 

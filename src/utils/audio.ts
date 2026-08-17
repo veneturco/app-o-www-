@@ -1,7 +1,7 @@
 /**
  * Lightweight web audio chime generator for gym timers
  */
-export function playChime(type: 'start' | 'tick' | 'finish' | 'pr') {
+export function playChime(type: 'start' | 'tick' | 'finish' | 'pr' | 'water' | 'alarm' = 'finish') {
   try {
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
@@ -13,7 +13,35 @@ export function playChime(type: 'start' | 'tick' | 'finish' | 'pr') {
 
     const now = ctx.currentTime;
 
-    if (type === 'tick') {
+    if (type === 'water') {
+      // Gentle hydro droplet resonance
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(1400, now + 0.12);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'alarm') {
+      // Hydro notification chime bell
+      [0, 0.18, 0.36].forEach((delay, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const freqs = [880, 1174.66, 1760]; // A5, D6, A6
+        osc.frequency.setValueAtTime(freqs[idx], now + delay);
+        gain.gain.setValueAtTime(0.25, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.45);
+      });
+    } else if (type === 'tick') {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';

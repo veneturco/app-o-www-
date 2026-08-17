@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Exercise, LoggedSet, SetType } from '../types';
-import { Plus, Trash2, CheckCircle, Timer, Award, Flame, Play } from 'lucide-react';
+import { Plus, Trash2, Timer, Play, Pause, RotateCcw, CheckSquare, Square, Dumbbell, Hash } from 'lucide-react';
 import { playChime } from '../utils/audio';
 
 interface SetLoggerProps {
   exercise: Exercise;
   loggedSets: LoggedSet[];
-  onAddSet: (set: Omit<LoggedSet, 'id' | 'timestamp'>) => void;
-  onDeleteSet: (id: string) => void;
-  onToggleComplete: (id: string) => void;
-  onStartRestTimer: (seconds: number) => void;
+  onAddSet?: (set: Omit<LoggedSet, 'id' | 'timestamp'>) => void;
+  onDeleteSet?: (id: string) => void;
+  onToggleComplete?: (id: string) => void;
+  onStartRestTimer?: (seconds: number) => void;
+  // Compatibility signatures for alternate callers
+  onAddSetDirect?: (exerciseId: string, weight: number, reps: number) => void;
+  onUpdateSet?: (exerciseId: string, setId: string, updates: Partial<LoggedSet>) => void;
+  onRemoveSet?: (exerciseId: string, setId: string) => void;
 }
 
 export const SetLogger: React.FC<SetLoggerProps> = ({
@@ -18,272 +22,269 @@ export const SetLogger: React.FC<SetLoggerProps> = ({
   onAddSet,
   onDeleteSet,
   onToggleComplete,
-  onStartRestTimer
+  onStartRestTimer,
+  onAddSetDirect,
+  onUpdateSet,
+  onRemoveSet
 }) => {
-  const [weightKg, setWeightKg] = useState<number>(50);
-  const [reps, setReps] = useState<number>(10);
-  const [rpe, setRpe] = useState<number>(8);
-  const [setType, setSetType] = useState<SetType>('working');
-  const [autoTimerSecs, setAutoTimerSecs] = useState<number>(90);
+  // Estados para los inputs
+  const [weightInput, setWeightInput] = useState<string>('50');
+  const [repsInput, setRepsInput] = useState<string>('10');
 
-  const handleSaveSet = () => {
-    onAddSet({
-      setNumber: loggedSets.length + 1,
-      weightKg: Number(weightKg) || 0,
-      reps: Number(reps) || 0,
-      rpe: Number(rpe) || undefined,
-      setType,
-      completed: true
-    });
-    playChime('start');
-    if (autoTimerSecs > 0) {
-      onStartRestTimer(autoTimerSecs);
+  // Estados para el Temporizador
+  const defaultRest = Number(exercise.rest) || 90;
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [timerMax, setTimerMax] = useState<number>(defaultRest);
+
+  // Lógica del Temporizador
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (isTimerRunning && timeLeft === 0) {
+      setIsTimerRunning(false);
+      playChime('finish');
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeLeft]);
+
+  const handleAddSet = (e: React.FormEvent) => {
+    e.preventDefault();
+    const w = parseFloat(weightInput) || 0;
+    const r = parseInt(repsInput, 10) || 0;
+    if (r > 0) {
+      if (onAddSetDirect) {
+        onAddSetDirect(exercise.id, w, r);
+      } else if (onAddSet) {
+        onAddSet({
+          setNumber: loggedSets.length + 1,
+          weightKg: w,
+          reps: r,
+          setType: 'working',
+          completed: true
+        });
+      }
+      playChime('start');
     }
   };
 
-  const totalVolume = loggedSets
-    .filter(s => s.completed)
-    .reduce((sum, s) => sum + (s.weightKg * s.reps), 0);
+  const toggleSetCompletion = (setId: string, isCurrentlyCompleted: boolean) => {
+    if (onUpdateSet) {
+      onUpdateSet(exercise.id, setId, { completed: !isCurrentlyCompleted });
+    } else if (onToggleComplete) {
+      onToggleComplete(setId);
+    }
+    
+    // Si se acaba de completar la serie, auto-iniciar el temporizador
+    if (!isCurrentlyCompleted) {
+      setTimeLeft(defaultRest);
+      setTimerMax(defaultRest);
+      setIsTimerRunning(true);
+      if (onStartRestTimer) {
+        onStartRestTimer(defaultRest);
+      }
+    }
+  };
 
-  const maxWeight = loggedSets
-    .filter(s => s.completed)
-    .reduce((max, s) => Math.max(max, s.weightKg), 0);
+  const handleDeleteSet = (setId: string) => {
+    if (onRemoveSet) {
+      onRemoveSet(exercise.id, setId);
+    } else if (onDeleteSet) {
+      onDeleteSet(setId);
+    }
+  };
+
+  // Cálculos visuales para el anillo SVG del temporizador
+  const radius = 32;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (timeLeft / (timerMax || 1)) * circumference;
+  const timerPercentage = timerMax > 0 ? (timeLeft / timerMax) * 100 : 0;
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   return (
-    <div className="bg-[#121826] border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-      {/* Title & Quick Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">
-            <Flame className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Tracker de Series & Cargas</h3>
-            <p className="text-[11px] text-slate-400">Registra tus series de {exercise.name}</p>
-          </div>
-        </div>
-
-        {loggedSets.length > 0 && (
-          <div className="flex items-center space-x-2 text-xs">
-            <div className="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
-              <span className="text-slate-400">Volumen: </span>
-              <span className="font-black text-cyan-400">{totalVolume.toLocaleString()} kg</span>
-            </div>
-            {maxWeight > 0 && (
-              <div className="bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center space-x-1.5">
-                <Award className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-slate-400">Top: </span>
-                <span className="font-black text-amber-400">{maxWeight} kg</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Input Form for New Set */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3.5">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {/* Peso Kg */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">Carga (kg)</label>
-            <div className="flex items-center bg-slate-950 border border-slate-700/80 rounded-xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setWeightKg(prev => Math.max(0, prev - 2.5))}
-                className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 text-xs font-bold transition"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                step="2.5"
-                min="0"
-                value={weightKg}
-                onChange={(e) => setWeightKg(parseFloat(e.target.value) || 0)}
-                className="w-full text-center bg-transparent text-sm font-bold text-white focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setWeightKg(prev => prev + 2.5)}
-                className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 text-xs font-bold transition"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Repeticiones */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">Reps</label>
-            <div className="flex items-center bg-slate-950 border border-slate-700/80 rounded-xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setReps(prev => Math.max(1, prev - 1))}
-                className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 text-xs font-bold transition"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={reps}
-                onChange={(e) => setReps(parseInt(e.target.value, 10) || 1)}
-                className="w-full text-center bg-transparent text-sm font-bold text-white focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setReps(prev => prev + 1)}
-                className="px-2.5 py-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 text-xs font-bold transition"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* RPE / Intensidad */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">RPE (1-10)</label>
-            <select
-              value={rpe}
-              onChange={(e) => setRpe(parseFloat(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl py-2 px-2.5 text-xs font-bold text-white focus:outline-none"
-            >
-              <option value={6}>RPE 6 (Calentamiento)</option>
-              <option value={7}>RPE 7 (3 reps en reserva)</option>
-              <option value={8}>RPE 8 (2 reps en reserva)</option>
-              <option value={8.5}>RPE 8.5 (1-2 reps en reserva)</option>
-              <option value={9}>RPE 9 (1 rep en reserva)</option>
-              <option value={9.5}>RPE 9.5 (Casi fallo)</option>
-              <option value={10}>RPE 10 (Fallo Muscular)</option>
-            </select>
-          </div>
-
-          {/* Tipo de Serie */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 block mb-1">Tipo de Serie</label>
-            <select
-              value={setType}
-              onChange={(e) => setSetType(e.target.value as SetType)}
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl py-2 px-2.5 text-xs font-bold text-white focus:outline-none"
-            >
-              <option value="working">Serie Efectiva (W)</option>
-              <option value="warmup">Aproximación (A)</option>
-              <option value="dropset">Drop Set (D)</option>
-              <option value="failure">Al Fallo (F)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Auto Timer Trigger Settings & Add Button */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
-          <div className="flex items-center space-x-1.5 text-xs text-slate-400">
-            <Timer className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Descanso automático:</span>
-            <select
-              value={autoTimerSecs}
-              onChange={(e) => setAutoTimerSecs(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1 text-cyan-300 font-semibold focus:outline-none"
-            >
-              <option value={0}>Sin temporizador</option>
-              <option value={30}>30 seg</option>
-              <option value={60}>60 seg</option>
-              <option value={90}>90 seg (Hipertrofia)</option>
-              <option value={120}>2 min</option>
-              <option value={180}>3 min (Fuerza)</option>
-            </select>
-          </div>
-
-          <button
-            id="btn-log-set"
-            onClick={handleSaveSet}
-            className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-md shadow-cyan-500/20 transition active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Añadir Serie</span>
-          </button>
+    <div className="bg-[#121826] border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-6">
+      {/* ================= HEADER ================= */}
+      <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div>
+          <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center">
+            <Dumbbell className="w-4 h-4 mr-2 text-cyan-400" />
+            Registro de Series & Cargas
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Registra tu progreso para <span className="text-cyan-300 font-bold">{exercise.name}</span>
+          </p>
         </div>
       </div>
 
-      {/* Logged Sets Table */}
-      {loggedSets.length > 0 ? (
-        <div className="space-y-2">
-          <div className="grid grid-cols-12 text-[10px] font-bold text-slate-500 uppercase px-3 py-1">
-            <span className="col-span-2">Serie</span>
-            <span className="col-span-3">Carga</span>
-            <span className="col-span-2">Reps</span>
-            <span className="col-span-2">RPE</span>
-            <span className="col-span-3 text-right">Acciones</span>
+      {/* ================= TEMPORIZADOR CIRCULAR (NEON) ================= */}
+      {(timeLeft > 0 || isTimerRunning) && (
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex items-center justify-between shadow-inner">
+          <div className="flex items-center space-x-4">
+            {/* SVG Circular Ring */}
+            <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0">
+              <svg className="transform -rotate-90 w-20 h-20">
+                {/* Track (Fondo) */}
+                <circle cx="40" cy="40" r={radius} stroke="#1E293B" strokeWidth="6" fill="transparent" />
+                {/* Indicador de Progreso */}
+                <circle
+                  cx="40"
+                  cy="40"
+                  r={radius}
+                  stroke={timerPercentage > 25 ? '#00F0FF' : '#F43F5E'}
+                  strokeWidth="6"
+                  fill="transparent"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={isNaN(strokeDashoffset) ? 0 : strokeDashoffset}
+                  className="transition-all duration-1000 ease-linear"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-base font-black text-white font-mono">{formatTime(timeLeft)}</span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-slate-200 uppercase tracking-widest flex items-center">
+                <Timer className="w-3.5 h-3.5 mr-1.5 text-cyan-400" /> Descanso ({defaultRest}s)
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Recupérate antes de la siguiente serie efectiva.</p>
+            </div>
           </div>
 
-          {loggedSets.map((set) => {
-            const badgeType =
-              set.setType === 'warmup'
-                ? { label: 'Aprox', class: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30' }
-                : set.setType === 'dropset'
-                ? { label: 'Drop', class: 'bg-purple-500/10 text-purple-300 border-purple-500/30' }
-                : set.setType === 'failure'
-                ? { label: 'Fallo', class: 'bg-red-500/10 text-red-300 border-red-500/30' }
-                : { label: 'Efectiva', class: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' };
-
-            return (
-              <div
-                key={set.id}
-                className={`grid grid-cols-12 items-center px-3.5 py-2.5 rounded-2xl text-xs border transition ${
-                  set.completed
-                    ? 'bg-slate-900/70 border-slate-800 text-slate-200'
-                    : 'bg-slate-950/40 border-slate-900 text-slate-500 opacity-60'
-                }`}
-              >
-                <div className="col-span-2 flex items-center space-x-1.5 font-bold">
-                  <span>#{set.setNumber}</span>
-                  <span className={`text-[9px] px-1.5 py-0.2 rounded border font-semibold ${badgeType.class}`}>
-                    {badgeType.label}
-                  </span>
-                </div>
-
-                <div className="col-span-3 font-bold text-cyan-300">
-                  {set.weightKg} <span className="text-[10px] text-slate-400 font-normal">kg</span>
-                </div>
-
-                <div className="col-span-2 font-bold text-white">
-                  {set.reps} <span className="text-[10px] text-slate-400 font-normal">reps</span>
-                </div>
-
-                <div className="col-span-2 text-slate-400 font-semibold">
-                  {set.rpe ? `RPE ${set.rpe}` : '-'}
-                </div>
-
-                <div className="col-span-3 flex items-center justify-end space-x-1.5">
-                  <button
-                    onClick={() => onToggleComplete(set.id)}
-                    title={set.completed ? 'Marcar incompleta' : 'Completar serie'}
-                    className={`p-1.5 rounded-lg border transition ${
-                      set.completed
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteSet(set.id)}
-                    title="Eliminar serie"
-                    className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="text-center py-4 bg-slate-950/40 border border-dashed border-slate-800 rounded-2xl">
-          <p className="text-xs text-slate-500">No hay series registradas hoy para este ejercicio.</p>
-          <p className="text-[11px] text-slate-600 mt-0.5">Ingresa tu peso y repeticiones arriba para comenzar.</p>
+          {/* Controles del Timer */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsTimerRunning(!isTimerRunning)}
+              className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-white transition shadow-md cursor-pointer"
+              title={isTimerRunning ? 'Pausar' : 'Reanudar'}
+            >
+              {isTimerRunning ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-cyan-400" />}
+            </button>
+            <button
+              onClick={() => {
+                setTimeLeft(defaultRest);
+                setTimerMax(defaultRest);
+                setIsTimerRunning(false);
+              }}
+              className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition cursor-pointer"
+              title="Reiniciar temporizador"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
+
+      {/* ================= FORMULARIO AÑADIR SERIE ================= */}
+      <form onSubmit={handleAddSet} className="flex items-end gap-3 pt-1">
+        <div className="flex-1 space-y-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center">
+            <Dumbbell className="w-3 h-3 mr-1 text-cyan-400" /> Peso (kg)
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            value={weightInput}
+            onChange={(e) => setWeightInput(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition text-sm"
+            placeholder="50"
+          />
+        </div>
+
+        <div className="flex-1 space-y-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center">
+            <Hash className="w-3 h-3 mr-1 text-cyan-400" /> Reps
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="100"
+            value={repsInput}
+            onChange={(e) => setRepsInput(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition text-sm"
+            placeholder="10"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={!weightInput || !repsInput}
+          className="bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 p-3 rounded-xl font-black transition flex items-center justify-center cursor-pointer disabled:cursor-not-allowed shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+          title="Guardar serie"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </form>
+
+      {/* ================= LISTA DE SERIES ================= */}
+      <div className="space-y-3">
+        {loggedSets.length === 0 ? (
+          <div className="text-center py-6 bg-slate-900/30 border border-dashed border-slate-800 rounded-2xl">
+            <p className="text-xs text-slate-500 font-semibold">No hay series registradas aún para este ejercicio.</p>
+            <p className="text-[10px] text-slate-600 mt-1">Ingresa el peso y las repeticiones arriba y presiona +.</p>
+          </div>
+        ) : (
+          loggedSets.map((set, index) => (
+            <div
+              key={set.id}
+              className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                set.completed
+                  ? 'bg-cyan-950/20 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.05)]'
+                  : 'bg-slate-900/80 border-slate-800'
+              }`}
+            >
+              {/* Botón de Checkbox */}
+              <button
+                onClick={() => toggleSetCompletion(set.id, set.completed)}
+                className="flex items-center space-x-3.5 flex-1 text-left cursor-pointer group"
+              >
+                {set.completed ? (
+                  <CheckSquare className="w-5 h-5 text-cyan-400 transition-transform group-hover:scale-110 flex-shrink-0" />
+                ) : (
+                  <Square className="w-5 h-5 text-slate-500 transition-transform group-hover:scale-110 group-hover:text-cyan-400 flex-shrink-0" />
+                )}
+
+                <div>
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-widest ${
+                      set.completed ? 'text-cyan-400' : 'text-slate-400'
+                    }`}
+                  >
+                    Serie {index + 1}
+                  </span>
+                  <div className="flex space-x-4 mt-0.5">
+                    <span className={`font-mono font-bold text-base ${set.completed ? 'text-white' : 'text-slate-300'}`}>
+                      {set.weightKg} <span className="text-[10px] text-slate-500 font-normal">kg</span>
+                    </span>
+                    <span className={`font-mono font-bold text-base ${set.completed ? 'text-white' : 'text-slate-300'}`}>
+                      {set.reps} <span className="text-[10px] text-slate-500 font-normal">reps</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+
+              {/* Eliminar Serie */}
+              <button
+                onClick={() => handleDeleteSet(set.id)}
+                className="p-2.5 bg-slate-950/60 hover:bg-red-500/20 text-slate-500 hover:text-red-400 rounded-xl transition cursor-pointer"
+                title="Eliminar serie"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

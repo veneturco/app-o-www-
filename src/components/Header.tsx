@@ -1,9 +1,11 @@
-import React from 'react';
-import { Flame, Dumbbell, Timer, Calculator, User, Sparkles, BookOpen, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Dumbbell, Timer, Calculator, User, Sparkles, BookOpen, Search, Trophy, Droplets } from 'lucide-react';
+import { SmartBottleH2OHUD } from './SmartBottleH2OHUD';
+import { HidroFitProLogo } from './HidroFitProLogo';
 
 interface HeaderProps {
-  activeTab: 'enciclopedia' | 'bodymap' | 'tracker' | 'calculators';
-  setActiveTab: (tab: 'enciclopedia' | 'bodymap' | 'tracker' | 'calculators') => void;
+  activeTab: 'enciclopedia' | 'bodymap' | 'tracker' | 'history' | 'hydration' | 'calculators';
+  setActiveTab: (tab: 'enciclopedia' | 'bodymap' | 'tracker' | 'history' | 'hydration' | 'calculators') => void;
   timerActive: boolean;
   timerSecondsRemaining: number;
   openTimer: () => void;
@@ -33,21 +35,9 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between">
           <div 
             onClick={() => setActiveTab('enciclopedia')} 
-            className="flex items-center space-x-3 cursor-pointer group"
+            className="cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition">
-              <span className="text-[#0B0F19] font-black text-xl">⚡</span>
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="text-cyan-400 font-black tracking-tighter text-xl">HYDRO</span>
-                <span className="text-white font-black tracking-tighter text-xl">FIT</span>
-                <span className="text-[10px] font-black bg-cyan-400/10 text-cyan-400 border border-cyan-400/30 px-1.5 py-0.5 rounded leading-none">
-                  GYM PRO
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Enciclopedia Biomecánica</p>
-            </div>
+            <HidroFitProLogo size="md" />
           </div>
 
           {/* Mobile Right Badges */}
@@ -150,6 +140,25 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Dumbbell className="w-3.5 h-3.5" />
           <span>Tracker & Rutinas</span>
+        </button>
+
+        {/* ================= SMART BOTTLE H2O-IA HUD BUTTON ================= */}
+        <SmartBottleH2OHUD 
+          isActiveTab={activeTab === 'hydration'}
+          onNavigate={() => setActiveTab('hydration')}
+        />
+
+        <button
+          id="tab-history"
+          onClick={() => setActiveTab('history')}
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap border ${
+            activeTab === 'history'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 border-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20'
+              : 'bg-[#121826] border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5" />
+          <span>Historial</span>
         </button>
 
         <button

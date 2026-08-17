@@ -9,6 +9,8 @@ export type MuscleGroup =
   | 'biceps'
   | 'triceps'
   | 'antebrazos'
+  | 'lumbares'
+  | 'trapecio'
   | 'core'
   | 'cardio';
 
@@ -31,6 +33,10 @@ export type Category =
   | 'piernas'
   | 'hombros'
   | 'brazos'
+  | 'trapecio'
+  | 'lumbares'
+  | 'antebrazos'
+  | 'gemelos'
   | 'core'
   | 'cardio';
 
@@ -66,6 +72,14 @@ export interface Exercise {
   mistakes: string[];
   imgMale: string;
   imgFemale: string;
+  videoUrl?: string;
+  youtubeId?: string;
+  coachExplanation?: string;
+  videoTutorialGuide?: {
+    focusPoints: string[];
+    breathingGuide: string;
+    cadenceText: string;
+  };
 
   // Rich extensions
   machineName?: string;
@@ -84,7 +98,25 @@ export interface Exercise {
   repRange: string;
   rpeRecommendation: string;
   tempoAdvice: string;
-  svgGraphicType: 'press' | 'pull' | 'squat' | 'extension' | 'curl' | 'cable' | 'treadmill' | 'abs';
+  svgGraphicType: 
+    | 'press' 
+    | 'pull' 
+    | 'squat' 
+    | 'extension' 
+    | 'curl' 
+    | 'cable' 
+    | 'treadmill' 
+    | 'abs'
+    | 'row'
+    | 'rdl'
+    | 'hip_thrust'
+    | 'dips'
+    | 'lateral'
+    | 'calf'
+    | 'crunch'
+    | 'fly'
+    | 'forearm'
+    | 'hyperextension';
 }
 
 export interface LoggedSet {
@@ -123,4 +155,52 @@ export interface RoutinePreset {
   focus: string;
   exerciseIds: string[];
   tag: string;
+}
+
+export interface HydrationScheduleItem {
+  time: string; // "08:30"
+  amountMl: number;
+  reason: string;
+  completed?: boolean;
+}
+
+export interface AIHydrationPlan {
+  city: string;
+  state?: string;
+  country?: string;
+  formattedLocation?: string;
+  temperatureEstimateC: number;
+  weatherCondition: string;
+  humidityEstimatePct: number;
+  totalDailyMl: number;
+  hourlyDoseMl: number;
+  intervalMinutes: number;
+  schedules: HydrationScheduleItem[];
+  aiExplanation: string;
+  electrolytesAdvice: string;
+  source?: string;
+  lastGeneratedAt?: string;
+}
+
+export interface UserHydrationProfile {
+  weightKg: number;
+  gender: 'male' | 'female';
+  age: number;
+  city: string;
+  state?: string;
+  country?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  activityLevel: string;
+  wakeTime: string;
+  sleepTime: string;
+}
+
+export interface HydrationDayRecord {
+  dateStr: string; // "2026-08-17"
+  dayName: string; // "Lun", "Mar", "Mié"...
+  consumedMl: number;
+  targetMl: number;
+  temperatureC?: number;
+  completedGoal: boolean;
 }

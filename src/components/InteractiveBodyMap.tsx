@@ -16,14 +16,17 @@ export const InteractiveBodyMap: React.FC<InteractiveBodyMapProps> = ({
   const muscleList: { id: MuscleGroup; label: string; view: 'anterior' | 'posterior' | 'both'; color: string }[] = [
     { id: 'pecho', label: 'Pectoral Mayor y Menor', view: 'anterior', color: 'border-cyan-400 text-cyan-300' },
     { id: 'hombros', label: 'Deltoides (Ant, Lat, Post)', view: 'both', color: 'border-amber-400 text-amber-300' },
+    { id: 'trapecio', label: 'Trapecio Superior y Medio', view: 'posterior', color: 'border-orange-400 text-orange-300' },
+    { id: 'espalda', label: 'Dorsal Ancho & Espalda Media', view: 'posterior', color: 'border-blue-400 text-blue-300' },
+    { id: 'lumbares', label: 'Lumbares & Erectores Espinales', view: 'posterior', color: 'border-indigo-400 text-indigo-300' },
     { id: 'biceps', label: 'Bíceps Braquial & Braquial', view: 'anterior', color: 'border-emerald-400 text-emerald-300' },
     { id: 'triceps', label: 'Tríceps (Cabeza Larga/Lat)', view: 'posterior', color: 'border-emerald-400 text-emerald-300' },
+    { id: 'antebrazos', label: 'Antebrazo (Flexores & Extensores)', view: 'both', color: 'border-teal-400 text-teal-300' },
     { id: 'core', label: 'Abdomen & Core / Oblicuos', view: 'anterior', color: 'border-purple-400 text-purple-300' },
     { id: 'cuadriceps', label: 'Cuádriceps (Vasto/Recto)', view: 'anterior', color: 'border-cyan-400 text-cyan-300' },
-    { id: 'espalda', label: 'Dorsal Ancho & Trapecios', view: 'posterior', color: 'border-blue-400 text-blue-300' },
     { id: 'gluteos', label: 'Glúteo Mayor y Medio', view: 'posterior', color: 'border-pink-400 text-pink-300' },
     { id: 'isquios', label: 'Isquiosurales / Femorales', view: 'posterior', color: 'border-yellow-400 text-yellow-300' },
-    { id: 'gemelos', label: 'Pantorrillas / Gemelos', view: 'both', color: 'border-slate-300 text-slate-200' },
+    { id: 'gemelos', label: 'Pantorrillas / Gemelos & Sóleo', view: 'both', color: 'border-slate-300 text-slate-200' },
     { id: 'cardio', label: 'Sistema Cardiovascular / VO2', view: 'both', color: 'border-red-400 text-red-300' }
   ];
 
@@ -125,9 +128,23 @@ export const InteractiveBodyMap: React.FC<InteractiveBodyMapProps> = ({
                   onClick={() => onSelectMuscle('biceps')}
                 />
 
-                {/* Forearms */}
-                <rect x="44" y="108" width="12" height="32" rx="4" fill="#1E293B" stroke="#334155" strokeWidth="1.5" />
-                <rect x="144" y="108" width="12" height="32" rx="4" fill="#1E293B" stroke="#334155" strokeWidth="1.5" />
+                {/* Forearms (Antebrazo) */}
+                <rect 
+                  x="44" y="108" width="12" height="32" rx="4" 
+                  fill={selectedMuscle === 'antebrazos' ? '#2DD4BF' : '#1E293B'} 
+                  stroke={selectedMuscle === 'antebrazos' ? '#FFF' : '#334155'} 
+                  strokeWidth="1.5" 
+                  className="cursor-pointer hover:opacity-80 transition"
+                  onClick={() => onSelectMuscle('antebrazos')}
+                />
+                <rect 
+                  x="144" y="108" width="12" height="32" rx="4" 
+                  fill={selectedMuscle === 'antebrazos' ? '#2DD4BF' : '#1E293B'} 
+                  stroke={selectedMuscle === 'antebrazos' ? '#FFF' : '#334155'} 
+                  strokeWidth="1.5" 
+                  className="cursor-pointer hover:opacity-80 transition"
+                  onClick={() => onSelectMuscle('antebrazos')}
+                />
 
                 {/* Core / Recto Abdominal */}
                 <rect 
@@ -192,17 +209,38 @@ export const InteractiveBodyMap: React.FC<InteractiveBodyMapProps> = ({
                 {/* Head */}
                 <circle cx="100" cy="24" r="16" fill="#1E293B" stroke="#334155" strokeWidth="2" />
                 
-                {/* Upper Trapezius & Back (Espalda) */}
+                {/* Upper Trapezius (Trapecio) */}
                 <path 
-                  d="M 68 50 L 100 40 L 132 50 L 126 128 L 74 128 Z"
+                  d="M 80 40 L 100 36 L 120 40 L 128 62 L 100 78 L 72 62 Z"
+                  fill={selectedMuscle === 'trapecio' ? '#FB923C' : '#1E293B'}
+                  stroke={selectedMuscle === 'trapecio' ? '#FFF' : '#334155'}
+                  strokeWidth="2"
+                  className="cursor-pointer hover:opacity-80 transition"
+                  onClick={() => onSelectMuscle('trapecio')}
+                />
+
+                {/* Upper Back / Lats (Espalda) */}
+                <path 
+                  d="M 68 62 L 100 78 L 132 62 L 126 112 L 74 112 Z"
                   fill={selectedMuscle === 'espalda' ? '#3B82F6' : '#1A2333'}
                   stroke={selectedMuscle === 'espalda' ? '#FFF' : '#334155'}
                   strokeWidth="2"
                   className="cursor-pointer hover:opacity-80 transition"
                   onClick={() => onSelectMuscle('espalda')}
                 />
+
+                {/* Lower Back / Erector Spinae (Lumbares) */}
+                <rect 
+                  x="80" y="114" width="40" height="18" rx="4"
+                  fill={selectedMuscle === 'lumbares' ? '#818CF8' : '#162032'}
+                  stroke={selectedMuscle === 'lumbares' ? '#FFF' : '#334155'}
+                  strokeWidth="2"
+                  className="cursor-pointer hover:opacity-80 transition"
+                  onClick={() => onSelectMuscle('lumbares')}
+                />
+
                 {/* Spine line */}
-                <line x1="100" y1="42" x2="100" y2="135" stroke="#0B0F19" strokeWidth="2" />
+                <line x1="100" y1="36" x2="100" y2="132" stroke="#0B0F19" strokeWidth="2" />
 
                 {/* Triceps */}
                 <rect 

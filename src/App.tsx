@@ -14,6 +14,8 @@ import { RestTimer } from './components/RestTimer';
 import { OneRMCalculator } from './components/OneRMCalculator';
 import { PlateCalculator } from './components/PlateCalculator';
 import { WorkoutSessionTracker } from './components/WorkoutSessionTracker';
+import { WorkoutHistory } from './components/WorkoutHistory';
+import { AIHydrationReminder } from './components/AIHydrationReminder';
 import { 
   Search, 
   Bookmark, 
@@ -23,7 +25,7 @@ import {
 
 export default function App() {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'enciclopedia' | 'bodymap' | 'tracker' | 'calculators'>('enciclopedia');
+  const [activeTab, setActiveTab] = useState<'enciclopedia' | 'bodymap' | 'tracker' | 'history' | 'hydration' | 'calculators'>('enciclopedia');
   
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -276,20 +278,45 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Muscle filter pill if filtered via BodyMap */}
-                {selectedMuscleFilter && (
-                  <div className="flex items-center justify-between bg-cyan-950/40 border border-cyan-500/40 px-3.5 py-2 rounded-2xl text-xs shadow-sm">
-                    <span className="text-cyan-300 font-medium">
-                      Filtrando por músculo: <b className="uppercase font-black text-cyan-400">{selectedMuscleFilter}</b>
-                    </span>
-                    <button
-                      onClick={() => setSelectedMuscleFilter(null)}
-                      className="text-cyan-400 font-bold hover:underline cursor-pointer"
-                    >
-                      Mostrar todos ✕
-                    </button>
-                  </div>
-                )}
+                {/* Muscle Group Quick Pills */}
+                <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 custom-scrollbar text-[11px]">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 mr-1 flex-shrink-0">Músculo:</span>
+                  {[
+                    { id: null, label: 'Todos' },
+                    { id: 'pecho', label: 'Pecho' },
+                    { id: 'espalda', label: 'Espalda' },
+                    { id: 'trapecio', label: 'Trapecio' },
+                    { id: 'lumbares', label: 'Lumbares' },
+                    { id: 'cuadriceps', label: 'Cuádriceps' },
+                    { id: 'isquios', label: 'Isquios' },
+                    { id: 'gluteos', label: 'Glúteos' },
+                    { id: 'gemelos', label: 'Gemelos' },
+                    { id: 'hombros', label: 'Hombros' },
+                    { id: 'biceps', label: 'Bíceps' },
+                    { id: 'triceps', label: 'Tríceps' },
+                    { id: 'antebrazos', label: 'Antebrazos' },
+                    { id: 'core', label: 'Abdomen' },
+                    { id: 'cardio', label: 'Cardio' }
+                  ].map((m) => {
+                    const isSelected = selectedMuscleFilter === m.id;
+                    return (
+                      <button
+                        key={m.label}
+                        onClick={() => {
+                          setSelectedMuscleFilter(m.id as MuscleGroup | null);
+                          setSelectedCategory('ALL');
+                        }}
+                        className={`px-3 py-1 rounded-xl font-bold transition whitespace-nowrap border cursor-pointer ${
+                          isSelected
+                            ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm'
+                            : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
                 {/* Category Tabs */}
                 <div id="categoryTabs" className="flex items-center justify-between gap-2 overflow-x-auto pb-1 custom-scrollbar">
@@ -447,7 +474,33 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* VIEW 4: CALCULADORAS (1RM & DISCOS) */}
+          {/* VIEW 4: HISTORIAL DE ENTRENAMIENTOS GUARDADOS */}
+          {activeTab === 'history' && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <WorkoutHistory />
+            </motion.div>
+          )}
+
+          {/* VIEW 5: RECORDATORIO DE HIDRATACIÓN IA CON CLIMA & ALARMAS */}
+          {activeTab === 'hydration' && (
+            <motion.div
+              key="hydration"
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <AIHydrationReminder />
+            </motion.div>
+          )}
+
+          {/* VIEW 6: CALCULADORAS (1RM & DISCOS) */}
           {activeTab === 'calculators' && (
             <motion.div
               key="calculators"

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Exercise, LoggedSet } from '../types';
+import { NikeVideoPlayer } from './NikeVideoPlayer';
 import { ExerciseGraphic } from './ExerciseGraphic';
 import { BiomechanicsDetail } from './BiomechanicsDetail';
 import { SetLogger } from './SetLogger';
@@ -10,12 +11,12 @@ import {
   Dumbbell, 
   Timer, 
   Bookmark, 
-  Layers,
   Sparkles,
   Zap,
   Activity,
   Image as ImageIcon,
-  Compass
+  Compass,
+  Play
 } from 'lucide-react';
 
 interface ExerciseViewerProps {
@@ -40,8 +41,9 @@ export const ExerciseViewer: React.FC<ExerciseViewerProps> = ({
   onToggleFavorite
 }) => {
   const [selectedGender, setSelectedGender] = useState<'male' | 'female'>('male');
-  const [visualMode, setVisualMode] = useState<'photo' | 'vector'>('photo');
+  const [visualMode, setVisualMode] = useState<'animated' | 'photo' | 'vector'>('animated');
   const [activeSubTab, setActiveSubTab] = useState<'guia' | 'biomecanica' | 'tracker'>('guia');
+  const [imgError, setImgError] = useState<boolean>(false);
 
   // Current real photographic image based on selected gender
   const currentImg = selectedGender === 'male' ? exercise.imgMale : exercise.imgFemale;
@@ -67,7 +69,7 @@ export const ExerciseViewer: React.FC<ExerciseViewerProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Gender Toggle: 🚹 Pro / 🚺 Pro */}
+            {/* Gender / Athlete Selector */}
             <div className="flex space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setSelectedGender('male')}
@@ -78,7 +80,7 @@ export const ExerciseViewer: React.FC<ExerciseViewerProps> = ({
                 }`}
               >
                 <span>🚹</span>
-                <span>Pro</span>
+                <span>Atleta 1</span>
               </button>
               <button
                 onClick={() => setSelectedGender('female')}
@@ -89,35 +91,7 @@ export const ExerciseViewer: React.FC<ExerciseViewerProps> = ({
                 }`}
               >
                 <span>🚺</span>
-                <span>Pro</span>
-              </button>
-            </div>
-
-            {/* View Mode Toggle: Photo vs Animated Vector */}
-            <div className="flex space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
-              <button
-                onClick={() => setVisualMode('photo')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center space-x-1 ${
-                  visualMode === 'photo'
-                    ? 'bg-slate-800 text-cyan-400 border border-cyan-500/40'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Fotografía técnica real"
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Foto</span>
-              </button>
-              <button
-                onClick={() => setVisualMode('vector')}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center space-x-1 ${
-                  visualMode === 'vector'
-                    ? 'bg-slate-800 text-cyan-400 border border-cyan-500/40'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Esquema biomecánico 3D"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Esquema 3D</span>
+                <span>Atleta 2</span>
               </button>
             </div>
 
@@ -146,28 +120,12 @@ export const ExerciseViewer: React.FC<ExerciseViewerProps> = ({
           </div>
         </div>
 
-        {/* Visual Showcase: Real Image or Biomechanical Vector Graphic */}
-        <div className="relative w-full aspect-video max-h-[380px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner">
-          {visualMode === 'photo' ? (
-            <>
-              <img
-                src={currentImg}
-                alt={exercise.name}
-                className="w-full h-full object-contain p-2"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-              {/* Overlay Tempo Badge */}
-              <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-cyan-300 font-mono shadow-lg flex items-center space-x-1.5">
-                <span>⏱️ Tempo:</span>
-                <span className="font-bold text-white">{exercise.tempo}</span>
-              </div>
-            </>
-          ) : (
-            <div className="w-full h-full p-2">
-              <ExerciseGraphic exercise={exercise} />
-            </div>
-          )}
+        {/* Visual Showcase: Nike Training Club Style Video & Real Athlete Player */}
+        <div className="relative w-full aspect-video min-h-[320px] max-h-[460px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shadow-2xl">
+          <NikeVideoPlayer
+            exercise={exercise}
+            gender={selectedGender}
+          />
         </div>
 
         {/* Bento Sub-Tabs Selector */}

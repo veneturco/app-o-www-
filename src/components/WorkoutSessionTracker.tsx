@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Exercise, LoggedSet, RoutinePreset } from '../types';
 import { ROUTINE_PRESETS } from '../data/exercises';
-import { Play, CheckSquare, Plus, Award, Flame, Dumbbell, Calendar, RotateCcw, ArrowRight, Zap, Target } from 'lucide-react';
+import { Play, CheckSquare, Plus, Award, Flame, Dumbbell, Calendar, RotateCcw, ArrowRight, Zap, Target, Save, Activity } from 'lucide-react';
 import { playChime } from '../utils/audio';
 
 interface WorkoutSessionTrackerProps {
@@ -20,7 +20,9 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
   const [workoutDuration, setWorkoutDuration] = useState<number>(0);
   const [isTimerActive, setIsTimerActive] = useState<boolean>(true);
   const [selectedRoutine, setSelectedRoutine] = useState<RoutinePreset | null>(null);
+  const [showSuccessAnim, setShowSuccessAnim] = useState<boolean>(false);
 
+  // Reloj de la sesión
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerActive) {
@@ -43,84 +45,129 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
     return `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
   };
 
-  // Calculate overall metrics
+  // Cálculos de Volumen y Series
   const allSetsList: LoggedSet[] = Object.values(allLoggedSets).flat() as LoggedSet[];
-
   const totalCompletedSets = allSetsList.filter((s: LoggedSet) => s.completed).length;
-
   const totalTonnageKg = allSetsList
     .filter((s: LoggedSet) => s.completed)
     .reduce((sum: number, s: LoggedSet) => sum + (s.weightKg * s.reps), 0);
-
+  
   const activeExerciseIds = Object.keys(allLoggedSets).filter(
     id => allLoggedSets[id] && allLoggedSets[id].length > 0
   );
 
+  // Función para guardar en LocalStorage
+  const handleSaveSession = () => {
+    const sessionData = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      duration: workoutDuration,
+      volume: totalTonnageKg,
+      sets: totalCompletedSets,
+      exercises: activeExerciseIds.length,
+      details: allLoggedSets
+    };
+    
+    // Recuperar historial previo y añadir la nueva sesión
+    const existingHistory = JSON.parse(localStorage.getItem('hydrofit_history') || '[]');
+    localStorage.setItem('hydrofit_history', JSON.stringify([sessionData, ...existingHistory]));
+
+    // Efecto de éxito
+    playChime('pr');
+    setShowSuccessAnim(true);
+    
+    setTimeout(() => {
+      setShowSuccessAnim(false);
+      onClearSession();
+      setWorkoutDuration(0);
+    }, 2000);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Session Hero Dashboard Bento Card */}
-      <div className="bg-[#121826] border border-slate-800 rounded-3xl p-5 sm:p-6 relative overflow-hidden shadow-2xl space-y-4">
-        {/* Subtle Decorative Radial Watermark Rings */}
+      {/* ================= HERO DASHBOARD ================= */}
+      <div className={`bg-[#121826] border ${showSuccessAnim ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]' : 'border-slate-800 shadow-2xl'} rounded-3xl p-5 sm:p-6 relative overflow-hidden transition-all duration-500 space-y-4`}>
+        
+        {/* Marca de agua cibernética */}
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <div className="w-64 h-64 border-8 border-cyan-500 rounded-full flex items-center justify-center">
-            <div className="w-32 h-32 border-4 border-cyan-500 rounded-full opacity-50"></div>
+          <div className={`w-64 h-64 border-8 ${showSuccessAnim ? 'border-emerald-500' : 'border-cyan-500'} rounded-full flex items-center justify-center transition-colors duration-500`}>
+            <div className={`w-32 h-32 border-4 ${showSuccessAnim ? 'border-emerald-500' : 'border-cyan-500'} rounded-full opacity-50`}></div>
           </div>
         </div>
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20">
-              <Dumbbell className="w-6 h-6 text-slate-950" />
+            <div className={`w-12 h-12 rounded-2xl ${showSuccessAnim ? 'bg-emerald-400' : 'bg-gradient-to-tr from-cyan-400 to-blue-600'} flex items-center justify-center text-slate-950 font-black shadow-lg shadow-cyan-500/20 transition-colors duration-500`}>
+              {showSuccessAnim ? <Award className="w-6 h-6" /> : <Dumbbell className="w-6 h-6" />}
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400">Panel de Control</span>
+              <span className={`text-[10px] uppercase font-bold tracking-widest ${showSuccessAnim ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                {showSuccessAnim ? '¡Entrenamiento Guardado!' : 'Panel de Control'}
+              </span>
               <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">Sesión Activa</h2>
             </div>
           </div>
 
           <div className="flex items-center space-x-2.5">
+            {/* Reloj de Sesión */}
             <div className="bg-slate-900/90 border border-slate-700/60 px-4 py-2 rounded-2xl flex items-center space-x-2.5 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="text-sm font-mono font-black text-white">{formatDuration(workoutDuration)}</span>
             </div>
 
-            <button
-              onClick={onClearSession}
-              className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition text-xs flex items-center space-x-1.5 cursor-pointer shadow-sm"
-              title="Reiniciar sesión actual"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline font-bold">Reiniciar</span>
-            </button>
+            {/* Botón de Guardado (Solo aparece si hay series completadas) */}
+            {totalCompletedSets > 0 && !showSuccessAnim && (
+              <button
+                onClick={handleSaveSession}
+                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-4 py-2 rounded-2xl font-black text-xs flex items-center space-x-1.5 transition shadow-[0_0_15px_rgba(6,182,212,0.4)] cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">Finalizar Sesión</span>
+              </button>
+            )}
+
+            {/* Botón Reiniciar (Papelera) */}
+            {!showSuccessAnim && (
+              <button
+                onClick={onClearSession}
+                className="p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition text-xs flex items-center justify-center cursor-pointer shadow-sm"
+                title="Reiniciar sesión actual"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* 3 Realtime Stats Bento Cells */}
+        {/* 3 Células de Estadísticas en Vivo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 relative z-10">
-          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Series Completadas</span>
+          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Series Logradas</span>
             <p className="text-2xl font-black text-cyan-400">{totalCompletedSets}</p>
           </div>
-          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Volumen Total (Tonnage)</span>
-            <p className="text-2xl font-black text-emerald-400">{totalTonnageKg.toLocaleString()} <span className="text-xs font-normal text-slate-400">kg</span></p>
+          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1 flex items-center"><Activity className="w-3 h-3 mr-1"/> Kilos Movidos</span>
+            <p className="text-2xl font-black text-emerald-400">{totalTonnageKg.toLocaleString()} <span className="text-xs font-normal text-slate-500">kg</span></p>
           </div>
-          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Ejercicios Realizados</span>
+          <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Ejercicios</span>
             <p className="text-2xl font-black text-purple-400">{activeExerciseIds.length}</p>
           </div>
         </div>
       </div>
 
-      {/* Routine Presets Selection Bento Card */}
+      {/* ================= RUTINAS PREDISEÑADAS ================= */}
       <div className="bg-[#121826] border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
         <div className="flex items-center space-x-2.5">
           <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-sm">
             <Calendar className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Plantillas de Rutinas de Gimnasio</h3>
-            <p className="text-[11px] text-slate-400">Carga rutinas prediseñadas para estructurar tu entrenamiento</p>
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Plantillas de Rutinas</h3>
+            <p className="text-[11px] text-slate-400">Carga rutinas para estructurar tu entrenamiento</p>
           </div>
         </div>
 
@@ -159,7 +206,6 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
           })}
         </div>
 
-        {/* If a routine is selected, show its exercise list with quick clicks */}
         {selectedRoutine && (
           <div className="mt-3 bg-slate-950/90 border border-cyan-500/30 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -205,7 +251,7 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
         )}
       </div>
 
-      {/* Active Workout Session Logs Bento Card */}
+      {/* ================= HISTORIAL DE HOY ================= */}
       <div className="bg-[#121826] border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider">Historial de Series de Hoy</h3>
 
@@ -226,7 +272,7 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
                       {ex.name}
                     </button>
                     <span className="text-[10px] font-semibold text-slate-400">
-                      {sets.length} series registradas
+                      {sets.length} series
                     </span>
                   </div>
 
@@ -234,10 +280,10 @@ export const WorkoutSessionTracker: React.FC<WorkoutSessionTrackerProps> = ({
                     {sets.map((set) => (
                       <span
                         key={set.id}
-                        className={`text-xs font-mono font-bold px-2.5 py-1 rounded-xl border ${
+                        className={`text-xs font-mono font-bold px-2.5 py-1 rounded-xl border transition-all ${
                           set.completed
-                            ? 'bg-cyan-950/60 border-cyan-500/30 text-cyan-300'
-                            : 'bg-slate-950 border-slate-800 text-slate-500'
+                            ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                            : 'bg-slate-950 border-slate-800 text-slate-600'
                         }`}
                       >
                         {set.weightKg}kg x {set.reps}
